@@ -49,6 +49,7 @@ agemod <- lm(Age ~ title+FamSize+Sex+Pclass+Embarked-1, df)
 df$Age[is.na(df$Age)] <- round(predict(agemod, df))
 
 ##Create test and validation data sets
+testing <- df[df$Source == "Test",]
 training <- df[df$Source=="Train",]
 inTrain <- createDataPartition(y=training$Survived, p=0.8, list=FALSE)
 data_train <- training[inTrain, ]
@@ -83,13 +84,16 @@ submission$Survived <- ifelse(submission$Survived > 0.5, 1.0, 0.0)
 write.csv(submission, file = "log_reg_submission2.csv", row.names=FALSE)
 
 ##Build and test random forest models
-rpart.mod <- train(data_train$Survived ~ Pclass+Sex+Age+SibSp, data = data_train, method = "rpart")
-confusionMatrix(data_val$Survived, predict(rpart.mod, data_val))
+# rpart.mod <- train(data_train$Survived ~ Pclass+Sex+Age+SibSp, data = data_train, method = "rpart")
+# confusionMatrix(data_val$Survived, predict(rpart.mod, data_val))
+# 
+# rpart.mod1 <- train(data_train$Survived ~ Pclass+Sex+Age+SibSp+Fare+Embarked, data = data_train, method = "rpart")
+# confusionMatrix(data_val$Survived, predict(rpart.mod1, data_val))
+# 
+# rpart.mod2 <- train(data_train$Survived ~ Pclass+Sex+Age+FamSize+CabinIdent+Fare, data = data_train, method = "rpart", preProcess = "pca")
+# confusionMatrix(data_val$Survived, predict(rpart.mod2, data_val))
 
-rpart.mod1 <- train(data_train$Survived ~ Pclass+Sex+Age+SibSp+Fare+Embarked, data = data_train, method = "rpart")
-confusionMatrix(data_val$Survived, predict(rpart.mod1, data_val))
-
-rpart.mod2 <- train(data_train$Survived ~ Pclass+Sex+Age+FamSize+CabinIdent+Fare, data = data_train, method = "rpart", preProcess = "pca")
+rpart.mod3 <- train(data_train$Survived ~ Pclass+Sex+Age+FamSize+CabinIdent+Embarked, data = data_train, method = "rpart", preProcess = "pca")
 confusionMatrix(data_val$Survived, predict(rpart.mod2, data_val))
 
 rpart.mod.all <- train(training$Survived ~ Pclass+Sex+Age+SibSp, data = training, method = "rpart")
@@ -107,11 +111,13 @@ confusionMatrix(data_val$Survived, predict(nnet.mod, data_val))
 nnet.mod1 <- train(data_train$Survived ~ Pclass+Sex+Age+Fare+Embarked+FamSize+CabinIdent, data = data_train, method = "nnet")
 confusionMatrix(data_val$Survived, predict(nnet.mod1, data_val))
 
-#nnet.mod2 <- train(Survived ~ Pclass+Sex+Age+Fare+Embarked+FamSize+CabinIdent, data = training, method = "nnet")
+nnet.mod2 <- train(Survived ~ Pclass+Sex+Age+FamSize+CabinIdent+Embarked, data = data_train, method = "nnet")
+confusionMatrix(data_val$Survived, predict(nnet.mod1, data_val))
 
 ##Export neural net prediction for submission
+nnet.final <- train(Survived ~ Pclass+Sex+Age+FamSize+CabinIdent+Embarked, data = training, method = "nnet")
 submission <- data.frame(PassengerId = testing$PassengerId)
-submission$Survived <- predict(nnet.mod1, testing)
-write.csv(submission, file = "nnet1_submission.csv", row.names=FALSE)
+submission$Survived <- predict(nnet.final, testing)
+write.csv(submission, file = "nnet3_submission.csv", row.names=FALSE)
 
 ##Other areas of exploration: imputing Age with linear model and pulling out title data from the Name field.
