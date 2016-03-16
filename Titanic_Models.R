@@ -1,4 +1,4 @@
-setwd("C:/Users/Little Bit/Documents/GitHub/Titanic_Models")
+setwd("~/Documents/Github/Titanic_Models")
 
 ##Test if data is downloaded and download if it doesn't exist
 if(!file.exists("./train.csv")){download.file(url = "https://www.kaggle.com/c/titanic/download/train.csv", destfile = "./train.csv")}
@@ -14,67 +14,46 @@ set.seed(2233)
 training <- read.csv("./train.csv")
 testing <- read.csv("./test.csv")
 
+##Combine training and test data for prep
+training$Source <- "Train"
+testing$Source <- "Test"
+testing$Survived <- NA
+df <- rbind(training, testing)
+
 ##Data Prep
-training$Survived <- as.factor(training$Survived)
-training$Fare[is.na(training$Fare)] <- median(training$Fare, na.rm=T)
-training$Embarked[training$Embarked==""]<- "S"
-training$Embarked<- as.factor(training$Embarked)
-training$Sex <- as.factor(training$Sex)
-training$Pclass <- as.factor(training$Pclass)
-
-
-
-testing$Fare[is.na(testing$Fare)] <- median(testing$Fare, na.rm=T)
-testing$Embarked[testing$Embarked==""]<- "S"
-testing$Embarked<- as.factor(testing$Embarked)
-testing$Sex <- as.factor(testing$Sex)
-testing$Pclass <- as.factor(testing$Pclass)
-
+df$Survived <- as.factor(df$Survived)
+df$Fare[is.na(df$Fare)] <- median(df$Fare, na.rm=T)
+df$Embarked[df$Embarked==""]<- "S"
+df$Embarked<- as.factor(df$Embarked)
+df$Sex <- as.factor(df$Sex)
+df$Pclass <- as.factor(df$Pclass)
 
 ##Create new features
-training$FamSize <- training$SibSp + training$Parch + 1
-training$CabinIdent <- as.factor(ifelse(training$Cabin=="", 0, 1))
+df$FamSize <- df$SibSp + df$Parch + 1
+df$CabinIdent <- as.factor(ifelse(df$Cabin=="", 0, 1))
 #Extract the title from the Name field
-for(i in 1:nrow(training)){
-    t <- strsplit(as.character(training$Name), ",")[[i]]
+for(i in 1:nrow(df)){
+    t <- strsplit(as.character(df$Name), ",")[[i]]
     y <- strsplit(t[2], " ")[[1]]
-    training$title[i] <- y[2]
+    df$title[i] <- y[2]
 }
 #Turn title into a factor
-training$title <- as.factor(training$title)
+df$title <- as.factor(df$title)
 #Recode the levels for title into three levels: 1 is formal title,
 #2 is yound person's title, and 3 is normal title
-levels(training$title) <- c(1,1,1,1,1,1,1,2,2,2,2,3,3,2,1,1,1)
+levels(df$title) <- c(1,1,1,1,1,1,1,1,2,2,2,2,3,3,2,1,1,1)
 
 #Builds a linear model for age
-agemod <- lm(Age ~ title+FamSize+Sex+Pclass+Embarked-1, training)
+agemod <- lm(Age ~ title+FamSize+Sex+Pclass+Embarked-1, df)
 #Imputes missing Age values from linear model
-training$Age[is.na(training$Age)] <- round(predict(agemod, training))
-
-
-testing$FamSize <- testing$SibSp + testing$Parch + 1
-testing$CabinIdent <- as.factor(ifelse(testing$Cabin=="", 0, 1))
-for(i in 1:nrow(testing)){
-    t <- strsplit(as.character(testing$Name), ",")[[i]]
-    y <- strsplit(t[2], " ")[[1]]
-    testing$title[i] <- y[2]
-}
-#Turn title into a factor
-testing$title <- as.factor(testing$title)
-#Recode the levels for title into three levels: 1 is formal title,
-#2 is yound person's title, and 3 is normal title
-levels(testing$title) <- c(1,1,1,1,1,1,1,2,2,2,2,3,3,2,1,1,1)
-
-#Builds a linear model for age
-agemod <- lm(Age ~ title+FamSize+Sex+Pclass+Embarked-1, testing)
-#Imputes missing Age values from linear model
-testing$Age[is.na(testing$Age)] <- round(predict(agemod, testing))
+df$Age[is.na(df$Age)] <- round(predict(agemod, df))
 
 ##Create test and validation data sets
+training <- df[df$Source=="Train",]
 inTrain <- createDataPartition(y=training$Survived, p=0.8, list=FALSE)
 data_train <- training[inTrain, ]
 data_val <- training[-inTrain, ]
-dim(data_train); dim(data_val)
+#dim(data_train); dim(data_val)
 
 ##Exploring the Data
 featurePlot(x=data_train[,c("Pclass","Age", "SibSp", "Parch", "Fare")],
