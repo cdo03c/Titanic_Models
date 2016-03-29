@@ -14,6 +14,10 @@ set.seed(2233)
 training <- read.csv("./train.csv")
 testing <- read.csv("./test.csv")
 
+##Test to see if we have an imbalanced classification problem
+table(training$Survived)
+prop.table(table(training$Survived))
+
 ##Combine training and test data for prep
 training$Source <- "Train"
 testing$Source <- "Test"

@@ -73,7 +73,7 @@ rm(df_all_ohe, df_all_combined)
 testing <- df[df$Source == "Test",]
 training <- df[df$Source=="Train",]
 #Removed the source field and the survived field for testing only
-training <- training[,!(names(training) %in% c("Source", "PassengerId""))]
+training <- training[,!(names(training) %in% c("Source", "PassengerId"))]
 testing <- testing[,!(names(testing) %in% c("Source", "Survived"))]
 inTrain <- createDataPartition(y=training$Survived, p=0.8, list=FALSE)
 data_train <- training[inTrain, ]
@@ -123,6 +123,7 @@ xgb <- xgboost(data = data.matrix(training),
 
 ##Export neural net prediction for submission
 submission <- data.frame(PassengerId = testing$PassengerId)
-submission$Survived 
 pred <- predict(xgb, data.matrix(testing[,-1]))
-write.csv(submission, file = "nnet2_submission.csv", row.names=FALSE)
+pred <- as.numeric(pred > 0.5)
+submission$Survived <- pred
+write.csv(submission, file = "xgb_submission.csv", row.names=FALSE)
